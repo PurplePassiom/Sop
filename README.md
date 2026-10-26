@@ -9,18 +9,18 @@ SOP 本目录 (`main/soa/Sop/`) 是一个**通信中间件**：它把"谁和谁�
 
 ```mermaid
 flowchart LR
-    N["Node 节点<br/>7-bit node_id (1~127)<br/>通信的逻辑主体"] -- "走哪条链路?" --> P
+    N["Node 节点<br/>7-bit node_id (1～127)<br/>通信的逻辑主体"] -- "走哪条链路?" --> P
     P["Path 路径<br/>SOA_PATH_CAN / IPC / UART / ESP-NOW<br/>物理传输通道"]
     S["Service 服务<br/>16-bit port_id + Soa_MessageType<br/>一对 收/发 端点"]
-    S -. "挂在 Node 之间的 Path 上" .-> N
-    S -. "由 port_id 标识" .-> P
+    N & P -. "被 Service 使用" .- S
 ```
 
-- **Node（节点）**：一个逻辑通信主体，用 7-bit `node_id`（1~127）标识，例如
+
+- **Node（节点）**：一个逻辑通信主体，用 7-bit `node_id`（1～127）标识，例如
   `MASTER_NODE_ID=2`（中央控制器）、`HUI_NODE_ID=6`（本板 AI 音箱）、
   `BCM_NODE_ID=4`、`MCU_NODE_ID=5`、`BMS_NODE_ID=7`。每个 node 通过
   `soa_create_node(node_id, Soa_NodeType)` 登记到**某一种**传输上。
-  号段规则：1~63 功能节点，64~127 预留给诊断节点（诊断不复用功能节点号）。
+  号段规则：1～63 功能节点，64～127 预留给诊断节点（诊断不复用功能节点号）。
 - **Path（路径）**：一种物理传输通道，即 `Soa_PathType`：
   `SOA_PATH_CAN=0`、`SOA_PATH_IPC=1`、`SOA_PATH_UART=2`、`SOA_PATH_ESPNOW=3`。
   路由表按 **(node 对)** 记录用哪条 path —— 两个节点之间走 CAN 还是走 ESP-NOW，
@@ -30,11 +30,7 @@ flowchart LR
   `message_service_callback` 回调的形式挂接到代码里。三个回调入口分别对应
   发布/订阅、请求、应答三种交互模式。
 
-## Node、Path、Service 的精确关系
-
-自上而下四层：**节点对查路由表得到 path，path 承载各 port_id 的服务消息**。
-
-## 通信模式与路由表的" 半路"语义（重要）
+## 通信模式与路由表
 
 三种 API 与路由表的关系**不完全对称**，这是本实现最容易踩坑的地方：
 
@@ -74,7 +70,7 @@ flowchart TB
 所以：**请求/应答和点对点订阅一定要先 `soa_create_route_path(a, b, path)`**；
 广播则天生跨传输（在每种已初始化的传输上各发/收一次）。
 
-## 本仓库中的典型接线（main/soa/hui.cc）
+## 本仓库中的典型接线
 
 ```c
 soa_init();                                          /* 初始化全部传输 */
